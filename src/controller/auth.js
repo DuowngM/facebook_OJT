@@ -7,12 +7,7 @@ require("dotenv").config();
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, birthday, gender } = req.body;
-    // Validate
-    if (!firstName || !lastName || !email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Vui lòng cung cấp đủ thông tin" });
-    }
+
     // Check user đã tồn tại trong db chưa
     const [checkUser] = await database.execute(
       "SELECT * FROM users WHERE email = ?",
@@ -86,6 +81,9 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
+    const userAgentInfo = req.ua; // Thông tin User-Agent được truy cập từ middleware
+    console.log(userAgentInfo);
+
     const { email, password } = req.body;
 
     // Kiểm tra xem người dùng tồn tại
@@ -104,7 +102,13 @@ const login = async (req, res) => {
     }
 
     // Loại bỏ các trường khỏi thông tin người dùng
-    const { password: _, firstName: __, lastName: ___, ...userData } = user[0];
+    const {
+      password: _,
+      firstName: __,
+      lastName: ___,
+      createdAt: ____,
+      ...userData
+    } = user[0];
 
     // Tạo mã thông báo JWT
     const token = jwt.sign({ email }, process.env.JWT_SECRET, {
@@ -116,11 +120,12 @@ const login = async (req, res) => {
     });
     // Đặt token vào cookie
     res.cookie("token", token, { httpOnly: true });
-
     // Trả về thông tin người dùng (không bao gồm mật khẩu) và mã thông báo
-    return res
-      .status(200)
-      .json({ message: "Đăng nhập thành công", accessToken, user: userData });
+    return res.status(200).json({
+      message: "Đăng nhập thành công",
+      accessToken,
+      user: userData,
+    });
   } catch (error) {
     console.log(error);
     return res

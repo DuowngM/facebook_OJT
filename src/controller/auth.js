@@ -7,13 +7,13 @@ require("dotenv").config();
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, birthday, gender } = req.body;
-
+    // Validate
     if (!firstName || !lastName || !email || !password) {
       return res
         .status(400)
         .json({ message: "Vui lòng cung cấp đủ thông tin" });
     }
-
+    // Check user đã tồn tại trong db chưa
     const [checkUser] = await database.execute(
       "SELECT * FROM users WHERE email = ?",
       [email]
@@ -21,22 +21,23 @@ const register = async (req, res) => {
     if (checkUser.length > 0) {
       return res.status(400).json({ message: "Email đã tồn tại" });
     }
-
+    // Mã hóa mật khẩu
     const hashedPassword = await argon.hash(password);
 
     const fullName = `${firstName} ${lastName}`;
 
     const avatar =
       "https://static2.yan.vn/YanNews/2167221/202102/facebook-cap-nhat-avatar-doi-voi-tai-khoan-khong-su-dung-anh-dai-dien-e4abd14d.jpg";
-
+    //Lấy thời gian hiện tại
     const createdAt = moment()
       .tz("Asia/Ho_Chi_Minh")
       .format("YYYY-MM-DD HH:mm:ss");
-
+    // Tạo câu query
     const query = `
             INSERT INTO users (firstName, lastName, email, password, fullName, birthday, gender, avatar, createdAt, checkLogin)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
           `;
+    // Thêm vào database
     await database.execute(query, [
       firstName,
       lastName,
@@ -48,6 +49,7 @@ const register = async (req, res) => {
       avatar,
       createdAt,
     ]);
+    // Lấy dữ liệu user vừa được tạo ra
     const [newUser] = await database.execute(
       "SELECT * FROM users ORDER BY user_id DESC LIMIT 1"
     );
@@ -68,6 +70,7 @@ const register = async (req, res) => {
       lastName: ___,
       ...userData
     } = newUser[0];
+    // Trả về client
     return res.status(201).json({
       message: "Người dùng đã được tạo",
       userData,
